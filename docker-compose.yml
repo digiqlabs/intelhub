@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    working_dir: /home/dynamodblocal
+    ports:
+      - "8000:8000"
+
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    environment:
+      - DYNAMODB_ENDPOINT=http://dynamodb:8000
+    ports:
+      - "8001:8001"
+    depends_on:
+      - dynamodb
+
+  api:
+    build:
+      context: ./backend
+    env_file:
+      - .env
+    ports:
+      - "8002:8002"
+    depends_on:
+      - dynamodb
+
+  web:
+    build:
+      context: ./frontend
+    env_file:
+      - .env
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
