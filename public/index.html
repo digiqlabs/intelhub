@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IntelHub - Competitor Tracking</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 IntelHub</h1>
+            <p class="tagline">Single Stop Shop to Track Competitors</p>
+        </header>
+
+        <div class="main-content">
+            <div class="actions">
+                <button id="addCompetitorBtn" class="btn btn-primary">+ Add Competitor</button>
+                <input type="text" id="searchInput" placeholder="Search competitors..." class="search-input">
+            </div>
+
+            <div id="competitorsList" class="competitors-grid">
+                <!-- Competitors will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="competitorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Competitor</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="competitorForm">
+                <input type="hidden" id="competitorId">
+                
+                <div class="form-group">
+                    <label for="name">Name *</label>
+                    <input type="text" id="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="website">Website</label>
+                    <input type="url" id="website" placeholder="https://example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="industry">Industry</label>
+                    <input type="text" id="industry">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="pricing">Pricing Model</label>
+                    <input type="text" id="pricing" placeholder="e.g., Freemium, Subscription, One-time">
+                </div>
+
+                <div class="form-group">
+                    <label for="keyFeatures">Key Features (comma-separated)</label>
+                    <textarea id="keyFeatures" rows="2" placeholder="Feature 1, Feature 2, Feature 3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="strengths">Strengths (comma-separated)</label>
+                    <textarea id="strengths" rows="2" placeholder="Strength 1, Strength 2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="weaknesses">Weaknesses (comma-separated)</label>
+                    <textarea id="weaknesses" rows="2" placeholder="Weakness 1, Weakness 2"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Details Modal -->
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="viewModalTitle">Competitor Details</h2>
+                <span class="close-view">&times;</span>
+            </div>
+            <div id="viewModalBody" class="view-details">
+                <!-- Details will be loaded here -->
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary close-view-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
