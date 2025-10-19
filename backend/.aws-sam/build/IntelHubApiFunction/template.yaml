@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: IntelHub backend FastAPI service deployed to AWS Lambda behind HttpApi.
+
+Parameters:
+  CompetitorsTableName:
+    Type: String
+    Default: IntelHubCompetitors
+    Description: DynamoDB table name for competitor records.
+  WishlistTableName:
+    Type: String
+    Default: IntelHubWishlist
+    Description: DynamoDB table name for wishlist items.
+  VendorsTableName:
+    Type: String
+    Default: IntelHubVendors
+    Description: DynamoDB table name for vendor records.
+  MasterProductsTableName:
+    Type: String
+    Default: IntelHubMasterProducts
+    Description: DynamoDB table name for master product catalog.
+  TagsTableName:
+    Type: String
+    Default: IntelHubTags
+    Description: DynamoDB table name for tag definitions.
+  TagIndexTableName:
+    Type: String
+    Default: IntelHubTagIndex
+    Description: DynamoDB table name storing tag-to-entity relationships.
+  FrontendBaseUrl:
+    Type: String
+    Default: "https://d196es8g9nmedw.cloudfront.net"
+    Description: Comma-separated list of deployed frontend base URLs (e.g. CloudFront) allowed for CORS.
+  AdditionalAllowedOrigins:
+    Type: String
+    Default: ""
+    Description: Extra comma-separated origins to allow for CORS beyond defaults and frontend URL.
+  AllowedOriginRegex:
+    Type: String
+    Default: "https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"
+    Description: Regex used as fallback origin matcher when explicit list does not apply.
+
+Globals:
+  Function:
+    Runtime: python3.11
+    Timeout: 30
+    MemorySize: 1024
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref CompetitorsTableName
+        WISHLIST_TABLE_NAME: !Ref WishlistTableName
+        VENDORS_TABLE_NAME: !Ref VendorsTableName
+        MASTER_PRODUCTS_TABLE_NAME: !Ref MasterProductsTableName
+        TAGS_TABLE_NAME: !Ref TagsTableName
+        TAG_INDEX_TABLE_NAME: !Ref TagIndexTableName
+        FRONTEND_BASE_URL: !Ref FrontendBaseUrl
+        ADDITIONAL_ALLOWED_ORIGINS: !Ref AdditionalAllowedOrigins
+        ALLOWED_ORIGIN_REGEX: !Ref AllowedOriginRegex
+
+Resources:
+  IntelHubApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: intelhub-backend
+      Description: FastAPI-based IntelHub backend served via Mangum on Lambda.
+      CodeUri: .
+      Handler: app.main.handler
+      Events:
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CompetitorsTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WishlistTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VendorsTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MasterProductsTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TagsTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TagIndexTableName
+
+Outputs:
+  HttpApiUrl:
+    Description: Invoke URL for the serverless HttpApi endpoint.
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub "${AWS::StackName}-HttpApiUrl"

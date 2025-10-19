@@ -1,4 +1,4 @@
-# IntelHub
+aws configure --profile intelhub-dev# IntelHub
 
 IntelHub helps growth teams monitor competitors and surface actionable insights from social media metrics.
 
