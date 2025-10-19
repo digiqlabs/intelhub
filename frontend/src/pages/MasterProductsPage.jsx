@@ -12,6 +12,8 @@ import {
   updateMasterProduct
 } from "../lib/api";
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
 const normalize = (value = "") => value.toLowerCase().trim();
 
 function MasterProductsPage({ onDataChanged }) {
@@ -20,6 +22,8 @@ function MasterProductsPage({ onDataChanged }) {
   const [error, setError] = useState(null);
   const [query, setQuery] = useState("");
   const [refreshToken, setRefreshToken] = useState(0);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -51,6 +55,10 @@ function MasterProductsPage({ onDataChanged }) {
     fetchMasterProducts();
   }, [fetchMasterProducts, refreshToken]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query]);
+
   const filteredProducts = useMemo(() => {
     const term = normalize(query);
     if (!term) return masterProducts;
@@ -61,6 +69,50 @@ function MasterProductsPage({ onDataChanged }) {
       return haystack.some((value) => value.includes(term));
     });
   }, [masterProducts, query]);
+
+  const pageCount = useMemo(() => {
+    if (!filteredProducts.length) return 0;
+    return Math.ceil(filteredProducts.length / pageSize);
+  }, [filteredProducts.length, pageSize]);
+
+  const resolvedPage = useMemo(() => {
+    if (!pageCount) return 1;
+    return Math.min(Math.max(1, currentPage), pageCount);
+  }, [currentPage, pageCount]);
+
+  useEffect(() => {
+    if (currentPage !== resolvedPage) {
+      setCurrentPage(resolvedPage);
+    }
+  }, [currentPage, resolvedPage]);
+
+  const paginatedProducts = useMemo(() => {
+    if (!filteredProducts.length) return [];
+    const start = (resolvedPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredProducts.slice(start, end);
+  }, [filteredProducts, resolvedPage, pageSize]);
+
+  const startIndex = useMemo(() => {
+    if (!filteredProducts.length) return 0;
+    return (resolvedPage - 1) * pageSize + 1;
+  }, [filteredProducts.length, resolvedPage, pageSize]);
+
+  const endIndex = useMemo(() => {
+    if (!filteredProducts.length) return 0;
+    return Math.min(filteredProducts.length, resolvedPage * pageSize);
+  }, [filteredProducts.length, resolvedPage, pageSize]);
+
+  const pageNumbers = useMemo(() => {
+    if (!pageCount) return [];
+    if (pageCount <= 5) {
+      return Array.from({ length: pageCount }, (_, index) => index + 1);
+    }
+    const start = Math.max(1, resolvedPage - 2);
+    const end = Math.min(pageCount, start + 4);
+    const adjustedStart = Math.max(1, end - 4);
+    return Array.from({ length: end - adjustedStart + 1 }, (_, index) => adjustedStart + index);
+  }, [resolvedPage, pageCount]);
 
   const openCreateModal = () => {
     setEditingProduct(null);
@@ -188,7 +240,7 @@ function MasterProductsPage({ onDataChanged }) {
         </div>
       )}
 
-      {!loading && !error && filteredProducts.length > 0 && (
+      {!loading && !error && paginatedProducts.length > 0 && (
         <div className="overflow-x-auto rounded-3xl border border-slate-800/80 bg-slate-950/50 shadow-inner shadow-slate-950/40">
           <table className="min-w-full divide-y divide-slate-800 text-sm">
             <thead className="bg-slate-900/80 text-xs uppercase tracking-[0.35em] text-slate-500">
@@ -211,7 +263,7 @@ function MasterProductsPage({ onDataChanged }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
-              {filteredProducts.map((product) => {
+              {paginatedProducts.map((product) => {
                 const isDeleting = deletingId === product.product_id;
                 const createdLabel = product.created_at
                   ? new Date(product.created_at).toLocaleDateString()
@@ -263,6 +315,81 @@ function MasterProductsPage({ onDataChanged }) {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!loading && !error && filteredProducts.length > 0 && (
+        <div className="flex flex-col gap-4 rounded-3xl border border-slate-800/80 bg-slate-950/50 p-6 text-sm text-slate-300">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <p className="text-slate-400">
+              Showing
+              <span className="font-semibold text-slate-100"> {startIndex}</span>
+              –
+              <span className="font-semibold text-slate-100"> {endIndex}</span>
+              of
+              <span className="font-semibold text-slate-100"> {filteredProducts.length}</span> master products
+            </p>
+            <label className="inline-flex items-center gap-2 text-slate-400">
+              <span className="text-xs uppercase tracking-[0.3em]">Rows per page</span>
+              <select
+                value={pageSize}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-sm font-medium text-slate-100 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {pageCount > 1 && (
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((value) => Math.max(1, value - 1))}
+                  disabled={resolvedPage === 1}
+                  className="rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((value) => Math.min(pageCount, value + 1))}
+                  disabled={resolvedPage === pageCount}
+                  className="rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {pageNumbers.map((pageNumber) => {
+                  const isActive = pageNumber === resolvedPage;
+                  return (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                        isActive
+                          ? "bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-500/30"
+                          : "border border-slate-700 text-slate-200 hover:border-slate-500 hover:text-white"
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
